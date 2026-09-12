@@ -1,0 +1,6 @@
+{% extends "base.html" %}
+{% block title %}Prisme — rapport{% endblock %}
+{# Le rendu provient de prisme.reporting.html, qui echappe lui-meme toute
+   valeur issue du corpus. Le marquer sur (|safe) ici est donc correct : la
+   chaine n'a jamais transite par une entree utilisateur non echappee. #}
+{% block body %}{{ body|safe }}{% endblock %}

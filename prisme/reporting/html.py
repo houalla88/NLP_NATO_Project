@@ -51,7 +51,7 @@ def _css_variables() -> str:
         "--panel:#ffffff", "--muted:#525a6b", "--line:#dde1e8",
         "--zebra:#f7f8fa", "--hover:#eef0f4",
         f"--elev:{brand.ELEVATION_BRAND}",
-    ]
+    ] + [f"--cat-{i}:{c}" for i, c in enumerate(brand.CATEGORICAL)]
     # En sombre, la contrainte s'inverse : la menthe vive atteint 10,7:1 sur
     # l'encre et redevient utilisable pour du texte. C'est la seule inversion
     # autorisee par la charte.
@@ -61,7 +61,7 @@ def _css_variables() -> str:
         "--line:#242c38", "--zebra:#0e131a", "--hover:#18202b", "--grid:#242c38",
         "--warning:#e0a344", "--danger:#f08b81",
         "--elev:0 20px 48px rgba(0,0,0,.45)",
-    ]
+    ] + [f"--cat-{i}:{c}" for i, c in enumerate(brand.CATEGORICAL_DARK)]
     joined_light = ";".join(light)
     joined_dark = ";".join(dark)
     return (
@@ -120,7 +120,8 @@ section{margin-top:44px}
   flex-wrap:wrap;border-bottom:1px solid var(--line);padding-bottom:10px;margin-bottom:18px}
 .note{max-width:72ch;color:var(--muted);font-size:.9rem}
 
-.kpis{display:grid;grid-template-columns:repeat(auto-fit,minmax(190px,1fr));gap:14px}
+.kpis{display:grid;gap:14px;
+  grid-template-columns:repeat(auto-fit,minmax(min(100%,168px),1fr))}
 .kpi{border:1px solid var(--line);border-radius:.875rem;padding:16px 18px;background:var(--panel);
   transition:transform 220ms var(--ease),box-shadow 220ms var(--ease)}
 .kpi:hover{transform:translateY(-3px);box-shadow:var(--elev)}
@@ -172,8 +173,11 @@ td.wrap-cell{white-space:normal;min-width:220px}
 footer{margin-top:56px;padding-top:20px;border-top:1px solid var(--line);
   color:var(--muted);font-size:.82rem}
 
-.reveal{opacity:0;transform:translateY(22px);animation:reveal 700ms var(--ease) forwards}
-@keyframes reveal{to{opacity:1;transform:none}}
+/* L'element est visible au repos ; l'animation part de l'etat masque via
+   `backwards`. Un element stationnant a opacity:0 serait invisible sur la
+   premiere image rendue - vignette, lien partage, lecteur qui ne defile pas. */
+.reveal{animation:reveal 700ms var(--ease) backwards}
+@keyframes reveal{from{opacity:0;transform:translateY(22px)}to{opacity:1;transform:none}}
 
 @media (max-width:560px){
   th,td{padding:8px 9px;font-size:.82rem}
@@ -211,12 +215,12 @@ def _heatmap(report: AnalysisReport) -> str:
         x = gutter + cell * index + cell / 2
         parts.append(
             f'<text x="{x:.0f}" y="{top - 12}" text-anchor="middle" font-size="12" '
-            f'font-weight="650" fill="{brand.NEUTRAL["600"]}">{esc(lang)}</text>'
+            f'font-weight="650" fill="var(--muted)">{esc(lang)}</text>'
         )
         y = top + cell * index + cell / 2
         parts.append(
             f'<text x="{gutter - 10}" y="{y + 4:.0f}" text-anchor="end" font-size="12" '
-            f'font-weight="650" fill="{brand.NEUTRAL["600"]}">{esc(lang)}</text>'
+            f'font-weight="650" fill="var(--muted)">{esc(lang)}</text>'
         )
 
     for row, lang_a in enumerate(langs):
@@ -257,7 +261,7 @@ def _map(report: AnalysisReport) -> str:
     ys = [p[1] for p in points.values()]
     span_x = max(max(xs) - min(xs), 1e-9)
     span_y = max(max(ys) - min(ys), 1e-9)
-    width, height, pad = 560, 340, 54
+    width, height, pad = 560, 350, 58
 
     parts = [
         f'<svg viewBox="0 0 {width} {height}" width="100%" height="{height}" '
@@ -267,22 +271,35 @@ def _map(report: AnalysisReport) -> str:
         y = pad + (height - 2 * pad) * step / 4
         parts.append(
             f'<line x1="{pad}" y1="{y:.0f}" x2="{width - pad}" y2="{y:.0f}" '
-            f'stroke="{brand.GRID}" stroke-width="1"/>'
+            f'stroke="var(--grid)" stroke-width="1"/>'
         )
 
     ordered = sorted(points.items(), key=lambda kv: kv[0])
     isolated = report.most_isolated_lang()
+    placed: list[tuple[float, float]] = []
+
     for index, (lang, (x, y)) in enumerate(ordered):
         cx = pad + (x - min(xs)) / span_x * (width - 2 * pad)
         cy = height - pad - (y - min(ys)) / span_y * (height - 2 * pad)
-        colour = brand.CATEGORICAL[index % len(brand.CATEGORICAL)]
+        colour = f"var(--cat-{index % len(brand.CATEGORICAL)})"
         radius = 13 if lang == isolated else 9
+
+        # Deux editions au cadrage tres proche se retrouvent au meme endroit sur
+        # la carte - c'est le resultat, pas un defaut. Leurs etiquettes, elles,
+        # ne doivent pas se superposer : la seconde bascule sous le point.
+        label_y = cy - radius - 9
+        if any(
+            abs(cx - px) < 34 and abs(label_y - py) < 16 for px, py in placed
+        ):
+            label_y = cy + radius + 17
+        placed.append((cx, label_y))
+
         parts.append(
             f'<g><title>{esc(lang)} - divergence moyenne '
             f'{report.divergence.mean_divergence(lang):.3f}</title>'
             f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{radius + 7}" fill="{colour}" opacity=".12"/>'
             f'<circle cx="{cx:.1f}" cy="{cy:.1f}" r="{radius}" fill="{colour}"/>'
-            f'<text x="{cx:.1f}" y="{cy - radius - 9:.1f}" text-anchor="middle" font-size="13" '
+            f'<text x="{cx:.1f}" y="{label_y:.1f}" text-anchor="middle" font-size="13" '
             f'font-weight="700" fill="{colour}">{esc(lang)}</text></g>'
         )
     parts.append("</svg>")
@@ -369,7 +386,7 @@ def _distinctive_blocks(report: AnalysisReport) -> str:
     blocks = []
     for index, lang in enumerate(report.langs):
         top = report.distinctive_for(lang, limit=6)
-        colour = brand.CATEGORICAL[index % len(brand.CATEGORICAL)]
+        colour = f"var(--cat-{index % len(brand.CATEGORICAL)})"
         if not top:
             body = "<p class='muted small'>Aucun concept ne depasse le seuil de significativite.</p>"
         else:
@@ -426,7 +443,7 @@ def _contestedness_table(report: AnalysisReport) -> str:
 
     rows = []
     for index, item in enumerate(profiles):
-        colour = brand.CATEGORICAL[index % len(brand.CATEGORICAL)]
+        colour = f"var(--cat-{index % len(brand.CATEGORICAL)})"
         series = [value for _, value in item.intensity_series]
         rows.append(
             f"<tr><td><b>{esc(item.lang)}</b> <span class='muted small'>{esc(lang_name(item.lang))}</span></td>"
@@ -552,11 +569,17 @@ que cette page ne contient pas.</p></div>
 # ---------------------------------------------------------------------------
 
 
-def render_fragment(report: AnalysisReport) -> str:
+def render_fragment(report: AnalysisReport, webfonts: bool = False) -> str:
     """Titre, styles et contenu - sans squelette HTML.
 
     Cette forme est directement publiable comme page hebergee, et sert de corps
     au document autonome renvoye par `render_document`.
+
+    `webfonts` charge Inter et JetBrains Mono depuis Google Fonts. Desactive par
+    defaut : le rapport statique doit rester consultable hors ligne et ne
+    solliciter aucun hote tiers. Active pour une page servie, ou la charte
+    prevoit ces familles - actuellement des jetons `assumed`, a confirmer quand
+    le `tailwind.config.js` du site sera disponible.
     """
     fit = float(report.parameters.get("embedding_fit", 0.0))
     fit_note = (
@@ -565,7 +588,15 @@ def render_fragment(report: AnalysisReport) -> str:
         else f"Ajustement faible ({fit:.0%}) : se referer a la matrice complete."
     )
 
-    return f"""<title>Prisme - {esc(report.entity_label)}</title>
+    fonts = (
+        '<link rel="stylesheet" href="https://fonts.googleapis.com/css2?'
+        "family=Inter:wght@400;600;700&family=JetBrains+Mono:wght@400;600&display=swap\">"
+        if webfonts
+        else ""
+    )
+
+    return f"""<title>Refraction narrative</title>
+{fonts}
 <style>{_css_variables()}:root{{--ease:{brand.EASING}}}{_STATIC_CSS}</style>
 <div class="wrap">
   <header class="hero reveal">

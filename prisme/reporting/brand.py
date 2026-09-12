@@ -31,6 +31,13 @@ SEMANTIC = {
 }
 
 CATEGORICAL = ["#09806c", "#5439b4", "#b06400", "#1b6ca8", "#a03050", "#5a6472"]
+
+# Variante sombre : memes teintes, luminosite relevee. La palette categorielle
+# de la charte est optimisee pour un fond clair ; posee telle quelle sur
+# l'encre, ses trois premieres series descendent sous le seuil de lisibilite.
+# Les teintes sont conservees pour que la correspondance entre les deux themes
+# reste immediate.
+CATEGORICAL_DARK = ["#3fe0bd", "#b9a5f5", "#e8a23e", "#5fb3e8", "#e58aa5", "#9aa3b4"]
 SEQUENTIAL = ["#e6f7f3", "#a8e5d6", "#5fc9b2", "#22a68c", "#09806c", "#065445"]
 DIVERGING = ["#b42318", "#e08b83", "#f2f2f2", "#7fc9b8", "#09806c"]
 GRID = "#dde1e8"

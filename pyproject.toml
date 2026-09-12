@@ -1,0 +1,31 @@
+[build-system]
+requires = ["setuptools>=68"]
+build-backend = "setuptools.build_meta"
+
+[project]
+name = "prisme"
+version = "0.1.0"
+description = "Mesure auditable de la divergence narrative entre editions linguistiques de Wikipedia"
+readme = "README.md"
+requires-python = ">=3.10"
+license = { text = "MIT" }
+authors = [{ name = "DataOptimization.be" }]
+keywords = ["nlp", "wikipedia", "framing", "divergence", "narrative-risk", "auditability"]
+
+# Le moteur de mesure n'a AUCUNE dependance d'execution.
+# C'est un choix delibere : surface d'approvisionnement nulle, metriques
+# auditables ligne a ligne, execution possible en environnement contraint.
+dependencies = []
+
+[project.optional-dependencies]
+app = ["flask>=3.0"]
+dev = ["flask>=3.0"]
+
+[project.scripts]
+prisme = "prisme.cli:main"
+
+[tool.setuptools.packages.find]
+include = ["prisme*", "app*"]
+
+[tool.setuptools.package-data]
+app = ["templates/*.html", "static/*"]

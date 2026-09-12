@@ -1,0 +1,102 @@
+{% extends "base.html" %}
+{% block title %}Prisme — corpus disponibles{% endblock %}
+{% block body %}
+<style>
+:root{
+  --ink:#090b10;--surface:#ffffff;--panel:#ffffff;--brand:#12d7b0;--brand-deep:#09806c;
+  --accent-deep:#5439b4;--line:#dde1e8;--muted:#525a6b;--zebra:#f7f8fa;--hover:#eef0f4;
+  --ease:cubic-bezier(0.22,1,0.36,1);color-scheme:light;
+}
+@media (prefers-color-scheme:dark){:root:not([data-theme='light']){
+  --ink:#eef0f4;--surface:#090b10;--panel:#11151c;--brand-deep:#3fe0bd;
+  --accent-deep:#b9a5f5;--line:#242c38;--muted:#9aa3b4;--zebra:#0e131a;--hover:#18202b;
+  color-scheme:dark;}}
+:root[data-theme='dark']{
+  --ink:#eef0f4;--surface:#090b10;--panel:#11151c;--brand-deep:#3fe0bd;
+  --accent-deep:#b9a5f5;--line:#242c38;--muted:#9aa3b4;--zebra:#0e131a;--hover:#18202b;
+  color-scheme:dark;}
+*{box-sizing:border-box}
+body{margin:0;background:var(--surface);color:var(--ink);font-size:15px;line-height:1.6;
+  font-family:Inter,ui-sans-serif,system-ui,-apple-system,"Segoe UI",sans-serif;
+  -webkit-font-smoothing:antialiased}
+.wrap{max-width:940px;margin:0 auto;padding-block:44px;padding-left:20px;padding-right:20px}
+.hero{position:relative;overflow:hidden;border:1px solid var(--line);border-radius:1.25rem;
+  padding:34px 28px;background:var(--panel)}
+.hero::before{content:"";position:absolute;inset:0;pointer-events:none;
+  background-image:linear-gradient(var(--brand) 1px,transparent 1px),
+    linear-gradient(90deg,var(--brand) 1px,transparent 1px);
+  background-size:34px 34px;opacity:.08}
+.hero>*{position:relative}
+.eyebrow{display:inline-flex;align-items:center;gap:8px;font-size:.72rem;letter-spacing:.16em;
+  text-transform:uppercase;font-weight:700;color:var(--brand-deep)}
+.eyebrow::before{content:"";width:22px;height:2px;background:var(--brand-deep);border-radius:2px}
+h1{margin:10px 0 0;font-size:clamp(1.9rem,4vw,2.6rem);letter-spacing:-.015em}
+.lede{color:var(--muted);max-width:62ch;margin-top:12px}
+h2{font-size:1.15rem;margin:44px 0 6px}
+.note{color:var(--muted);font-size:.9rem;max-width:70ch;margin-top:0}
+.grid{display:grid;gap:14px;margin-top:18px}
+.card{border:1px solid var(--line);border-radius:.875rem;padding:18px 20px;background:var(--panel);
+  display:flex;justify-content:space-between;gap:18px;align-items:center;flex-wrap:wrap;
+  transition:transform 220ms var(--ease),box-shadow 220ms var(--ease)}
+.card:hover{transform:translateY(-3px);box-shadow:0 20px 48px rgba(9,128,108,.14)}
+.card h3{margin:0 0 4px;font-size:1rem}
+.meta{color:var(--muted);font-size:.82rem;font-family:"JetBrains Mono",ui-monospace,monospace}
+.actions{display:flex;gap:10px;flex-wrap:wrap}
+a.btn{display:inline-block;text-decoration:none;font-weight:600;font-size:.85rem;
+  border-radius:9999px;padding:8px 16px;border:1px solid var(--brand-deep);color:var(--brand-deep);
+  transition:background 180ms var(--ease),color 180ms var(--ease)}
+a.btn:hover{background:var(--brand-deep);color:var(--surface)}
+a.btn.sec{border-color:var(--line);color:var(--muted)}
+.empty{border:1px dashed var(--line);border-radius:.875rem;padding:24px;color:var(--muted)}
+code{font-family:"JetBrains Mono",ui-monospace,monospace;background:var(--zebra);
+  border:1px solid var(--line);border-radius:.4rem;padding:1px 6px;font-size:.85em}
+footer{margin-top:52px;padding-top:18px;border-top:1px solid var(--line);
+  color:var(--muted);font-size:.82rem}
+@media (prefers-reduced-motion:reduce){*{transition:none!important;transform:none!important}}
+</style>
+<div class="wrap">
+  <header class="hero">
+    <div class="eyebrow">DataOptimization.be &middot; Prisme</div>
+    <h1>Refraction narrative</h1>
+    <p class="lede">Un meme referent, decrit par plusieurs editions linguistiques de
+    Wikipedia. Prisme mesure de combien la repartition de l'attention change selon la
+    langue, avec quelle incertitude, et a quel point chaque version est contestee par ses
+    propres contributeurs.</p>
+  </header>
+
+  <h2>Corpus disponibles</h2>
+  <p class="note">Chaque corpus est un etat fige. Le rapport est recalcule a la demande,
+  jamais servi depuis un cache : un chiffre affiche correspond toujours au corpus indique.</p>
+
+  {% if corpora %}
+  <div class="grid">
+    {% for corpus in corpora %}
+    <article class="card">
+      <div>
+        <h3>{{ corpus.label }}</h3>
+        <div class="meta">{{ corpus.qid }} &middot; {{ corpus.langs }} &middot; {{ corpus.nature }}</div>
+      </div>
+      <div class="actions">
+        <a class="btn" href="/rapport/{{ corpus.name }}">Rapport</a>
+        <a class="btn sec" href="/api/rapport/{{ corpus.name }}">JSON</a>
+      </div>
+    </article>
+    {% endfor %}
+  </div>
+  {% else %}
+  <div class="empty">
+    <p>Aucun corpus dans le repertoire <code>corpora/</code>.</p>
+    <p>Generer le corpus de demonstration :<br><code>python -m prisme.cli demo</code></p>
+    <p>Ou collecter un corpus reel :<br>
+    <code>prisme collect --qid Q7184 --langs ru,en,fr,de,pl,uk --out corpora/otan.json</code></p>
+  </div>
+  {% endif %}
+
+  <footer>
+    <p>Prisme {{ version }} &middot; methode {{ method }} &middot; moteur de mesure sans
+    dependance d'execution &middot; DataOptimization.be</p>
+    <p>L'interface est en lecture seule : aucune route ne declenche d'appel reseau sortant.
+    La collecte se fait par <code>prisme collect</code> et produit un corpus fige.</p>
+  </footer>
+</div>
+{% endblock %}
